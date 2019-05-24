@@ -38,6 +38,8 @@ def processText(contents: str):
     if matches is None or len(matches) == 0:
         return None
     for match in matches:
+        # Some names will include newlines and the like.  Turn all spans of whitespace into a single space
+        match=re.sub("\s+", " ", match)
         namesFound.append(match)
 
     # Remove duplicates
