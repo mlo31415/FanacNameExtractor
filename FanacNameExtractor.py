@@ -62,9 +62,9 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     relpath=dirName.replace(fanacRootPath, "")
     pathcomponents=(relpath).split(os.path.sep)
     if len(pathcomponents) > 1 and pathcomponents[1] in skippers:
-        print("Skipping directory: "+dirName)
+        print("Skipping directory: "+relpath)
         continue
-    print('Found directory: %s' % dirName)
+    print('Processing directory: %s' % dirName)
 
     for fname in fileList:
         rslt=processFile(dirName, relpath, fname)
