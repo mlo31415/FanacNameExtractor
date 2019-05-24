@@ -5,23 +5,24 @@ import re
 
 # Take a file's pathname and, if it's a format we can handle, create a list of names found in it.
 # We return a list of tuples (name, filepath)
-def processFile(dirname: str, fname: str):
+def processFile(dirname: str, pname: str, fname: str):
 
     # Skip the existing names index files!
-    if re.match("^names-[a-zA-Z]{1-2}\.html$", fname):
+    if re.match("^names-[a-zA-Z]{1,2}\.html$", fname):
         return None
 
-    fpath=os.path.join(dirName, fname)
+    fullpath=os.path.join(dirName, fname)
+    relpath=os.path.join(pname, fname)
 
     textTypes=[".txt", ".html"]
-    ext=os.path.splitext(fpath)[1].lower()
+    ext=os.path.splitext(fullpath)[1].lower()
     if ext in textTypes:
-        with open(fpath, "rb") as f:  # Reading in binary and doing the funny decode is to handle special characters embedded in some sources.
+        with open(fullpath, "rb") as f:  # Reading in binary and doing the funny decode is to handle special characters embedded in some sources.
             source=f.read().decode("cp437")
         rslt=processText(source)
         if rslt is None:
             return None
-        return [(r, fname) for r in rslt]
+        return [(r, relpath) for r in rslt]
     elif ext == ".pdf":
         return None    # Can't handle this yet
     return None
@@ -53,7 +54,7 @@ def processText(contents: str):
 
 fanacRootPath="O:\\Bulk storage\\fanac.org backups\\fanac.org\\public"
 namePathPairs=[]
-skippers=["ZipDisks", "Sasquan", "Aussiecon4", "Denvention3", "Intersection", "backup2", "Anticipation", "conjose"]
+skippers=["stats", "ZipDisks", "Sasquan", "Aussiecon4", "Denvention3", "Intersection", "backup2", "Anticipation", "conjose"]
 
 # Recursively walk the directory tree under fanacRootPath
 for dirName, subdirList, fileList in os.walk(fanacRootPath):
@@ -66,13 +67,13 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     print('Found directory: %s' % dirName)
 
     for fname in fileList:
-        rslt=processFile(dirName, fname)
+        rslt=processFile(dirName, relpath, fname)
         if rslt is not None:
             namePathPairs.extend(rslt)
 
 # And write the results
 with open("Fanac name path pairs.txt", "w+") as f:
     for name, path in namePathPairs:
-        f.write("<"+name+">"+path+"\n")
+        f.write("<"+name+">  "+path+"\n")
 
 i=0
