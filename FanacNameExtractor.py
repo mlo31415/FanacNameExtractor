@@ -5,7 +5,7 @@ import re
 
 # Take a file's pathname and, if it's a format we can handle, create a list of names found in it.
 # We return a list of tuples (name, filepath)
-def processFile(dirname: str, pname: str, fname: str):
+def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict):
 
     # Skip the existing names index files!
     if re.match("^names-[a-zA-Z]{1,2}\.html$", fname):
@@ -19,7 +19,7 @@ def processFile(dirname: str, pname: str, fname: str):
     if ext in textTypes:
         with open(fullpath, "rb") as f:  # Reading in binary and doing the funny decode is to handle special characters embedded in some sources.
             source=f.read().decode("cp437")
-        rslt=processText(source)
+        rslt=processText(source, peopleNamesDict)
         if rslt is None:
             return None
         return [(r, relpath) for r in rslt]
@@ -30,8 +30,40 @@ def processFile(dirname: str, pname: str, fname: str):
 
 #..................................................................
 # Take a string and return a list of all the unique recognized names in it.
-def processText(contents: str):
+def processText(contents: str, peopleNamesDict: dict):
     namesFound=[]
+
+    # We tokenize the input string breaking on whitespace.
+    # Then we search it looking for matches to peopleNamesDict.  We add the match to namesFound and remove it from the string.
+    input=contents.split()
+    i=0
+    while i<len(input):
+        try:
+            peopleNamesList=peopleNamesDict[input[i]]
+        except:
+            i+=1    # No match.  Go to the next token and try again.
+            continue
+
+        # We have a token match to the start of a name.  Run through the list of trailing tokens for each name to see if any of them also match
+        for peopleName in peopleNamesList:
+            ln=len(peopleName)
+            if ln == 0:     # It's a one-token name
+                namesFound.append(input[i])
+                input[i]=""
+                break
+            elif input[i+1 : i+1+ln] == peopleName:     # A hit!
+                namesFound.append(" ".join(input[i:i+ln+1]))
+                for j in range(ln+1):
+                    input[i+j]=""
+                i+=ln
+                break
+            else:
+                pass    # No Match. Go on to the next name in the list
+        i+=1
+
+    # All done. Reassemble the string for we can use another method on what's left.
+    contents=" ".join(input)
+
     # We'll start by looking for strings of the form <uc character><span(alpha)><whitespace><uc character>.<whitespace><uc character><span(alpha)>
     # (If we're going to do any further processing, we should use sub() to drop the names we have found from the input before the nest stop or we'll get dups.)
     pattern=re.compile("([A-Z][a-z]*\s+[A-Z]\.\s+[A-Z][a-z]+)")
@@ -51,10 +83,28 @@ def processText(contents: str):
 #***************************************************************************************
 # Main
 
+# Read in the people names table from Fancyclopedia 3.  This will provide a rich set of names to look for in Fanac.org
+print("Reading Fancy names")
+fancyNamesPath=r"..\FancyNameExtractor\Peoples names.txt"
+with open(fancyNamesPath, "r") as f:
+    peopleNames=f.readlines()
+peopleNames=[x[:-1] for x in peopleNames]
 
+# We need to turn this into a form which can be efficiently searched.
+# We'll tokenize the names, and create a list of names as the values of a dictionary based on the first token.
+# The names themselves will be lists of the remaining tokens
+print("Creating names dictionary")
+peopleNamesDict={}
+for name in peopleNames:
+    name=name.split()
+    if name[0] not in peopleNamesDict.keys():
+        peopleNamesDict[name[0]]=[]
+    peopleNamesDict[name[0]].append(name[1:])
+
+print("Walking Fanac.org directory tree")
 fanacRootPath="O:\\Bulk storage\\fanac.org backups\\fanac.org\\public"
 namePathPairs=[]
-skippers=["stats", "ZipDisks", "Sasquan", "Aussiecon4", "Denvention3", "Intersection", "backup2", "Anticipation", "conjose"]
+skippers=["_private", "stats", "ZipDisks", "Sasquan", "Aussiecon4", "Denvention3", "Intersection", "backup2", "Anticipation", "conjose"]
 
 # Recursively walk the directory tree under fanacRootPath
 for dirName, subdirList, fileList in os.walk(fanacRootPath):
@@ -67,7 +117,7 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     print('Processing directory: %s' % dirName)
 
     for fname in fileList:
-        rslt=processFile(dirName, relpath, fname)
+        rslt=processFile(dirName, relpath, fname, peopleNamesDict)
         if rslt is not None:
             namePathPairs.extend(rslt)
 
