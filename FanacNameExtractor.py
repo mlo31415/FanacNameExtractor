@@ -104,7 +104,7 @@ for name in peopleNames:
 print("Walking Fanac.org directory tree")
 fanacRootPath="O:\\Bulk storage\\fanac.org backups\\fanac.org\\public"
 namePathPairs=[]
-skippers=["_private", "stats", "ZipDisks", "Sasquan", "Aussiecon4", "Denvention3", "Intersection", "backup2", "Anticipation", "conjose"]
+skippers=["_private", "stats", "ZipDisks", "Sasquan", "Aussiecon4", "Denvention3", "Intersection", "backup2", "Anticipation", "conjose", "NewStuff"]
 
 # Recursively walk the directory tree under fanacRootPath
 for dirName, subdirList, fileList in os.walk(fanacRootPath):
