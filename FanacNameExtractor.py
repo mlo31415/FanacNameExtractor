@@ -124,6 +124,6 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
 # And write the results
 with open("Fanac name path pairs.txt", "w+") as f:
     for name, path in namePathPairs:
-        f.write("<"+name+">  "+path+"\n")
+        f.write(name+" | "+path+"\n")
 
 i=0
