@@ -30,12 +30,22 @@ def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict):
 
 #..................................................................
 # Take a string and return a list of all the unique recognized names in it.
-def processText(contents: str, peopleNamesDict: dict):
+def processText(input: str, peopleNamesDict: dict):
     namesFound=[]
 
     # We tokenize the input string breaking on whitespace.
     # Then we search it looking for matches to peopleNamesDict.  We add the match to namesFound and remove it from the string.
-    input=contents.split()
+    ignore=["by F.A.N.A.C. Inc."]
+    for ig in ignore:
+        input=input.replace(ig, "")
+    input=re.sub(r"</?[a-zA-Z]{1,2}[ >]", " ", input)  # Get rid of some of the the pesky bits of HTML which can look like parts of names
+    pattern=r"(Scan by|Scans by|scans by|Photo by|Scanning by|For more|provided by|entered by|Updated)\s+[a-zA-Z]{2,15}\s+[a-zA-Z]{2,15}"
+    input=re.sub(pattern, " ", input)
+    #pattern=r"(Scan by|Scans by|scans by|Photo by|Scanning by|For more|Updated)\s+[a-zA-Z]{2,15}\s+[a-zA-Z]{2,15}"
+    #input=re.sub(pattern, " ", input)
+
+    input=re.split(r"[^a-zA-Z]", input)     # Split on spans of non-alphabetic text
+    input=[c for c in input if c != ""]     # The previous step produces a lot of enpty list element -- get rid of them
     i=0
     while i<len(input):
         try:
@@ -64,16 +74,15 @@ def processText(contents: str, peopleNamesDict: dict):
     # All done. Reassemble the string for we can use another method on what's left.
     contents=" ".join(input)
 
-    # We'll start by looking for strings of the form <uc character><span(alpha)><whitespace><uc character>.<whitespace><uc character><span(alpha)>
+    # We'll start by looking for strings of the form <uc character><span(alpha)><whitespace><uc character><whitespace><uc character><span(alpha)>
     # (If we're going to do any further processing, we should use sub() to drop the names we have found from the input before the nest stop or we'll get dups.)
-    pattern=re.compile("([A-Z][a-z]*\s+[A-Z]\.\s+[A-Z][a-z]+)")
+    pattern=re.compile("([A-Z][a-z]*\s+[A-Z]\s+[A-Z][a-z]{3-99})")      # The {3-99} bit is because some files are actually binary and this filters out a lot of 1- and 2-character noise.
     matches=re.findall(pattern, contents)
-    if matches is None or len(matches) == 0:
-        return None
-    for match in matches:
-        # Some names will include newlines and the like.  Turn all spans of whitespace into a single space
-        match=re.sub("\s+", " ", match)
-        namesFound.append(match)
+    if matches is not None and len(matches) > 0:
+        for match in matches:
+            # Some names will include newlines and the like.  Turn all spans of whitespace into a single space
+            match=re.sub("\s+", " ", match)
+            namesFound.append(match)
 
     # Remove duplicates
     return list(set(namesFound))
@@ -117,6 +126,8 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     print('Processing directory: %s' % dirName)
 
     for fname in fileList:
+#        if fname != "LegalRules-3.html":
+#            continue
         rslt=processFile(dirName, relpath, fname, peopleNamesDict)
         if rslt is not None:
             namePathPairs.extend(rslt)
