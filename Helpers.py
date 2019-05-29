@@ -9,6 +9,7 @@ def IsAName(s: str):
     if m is None:
         return False
 
+    return True
     firstnames=["Bob", "Robert", "Don", "Donald", "Alice"]
     if m.groups()[0] in firstnames:
         return True
