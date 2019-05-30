@@ -5,7 +5,7 @@ import re
 
 # Take a file's pathname and, if it's a format we can handle, create a list of names found in it.
 # We return a list of tuples (name, filepath)
-def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict):
+def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancyPeopleLnames: set):
 
     # Skip the existing names index files!
     if re.match("^names-[a-zA-Z]{1,2}\.html$", fname):
@@ -19,7 +19,7 @@ def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict):
     if ext in textTypes:
         with open(fullpath, "rb") as f:  # Reading in binary and doing the funny decode is to handle special characters embedded in some sources.
             source=f.read().decode("cp437")
-        rslt=processText(source, peopleNamesDict)
+        rslt=processText(source, peopleNamesDict, fancyPeopleFnames, fancyPeopleLnames)
         if rslt is None:
             return None
         return [(r, relpath) for r in rslt]
@@ -30,7 +30,7 @@ def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict):
 
 #..................................................................
 # Take a string and return a list of all the unique recognized names in it.
-def processText(input: str, peopleNamesDict: dict):
+def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancyPeopleLnames: set):
     namesFound=[]
 
     # We tokenize the input string breaking on whitespace.
@@ -87,6 +87,10 @@ def processText(input: str, peopleNamesDict: dict):
                     match[1]=match[1]+"."
                 if len(match[len(match)-1]) == 2:
                     match[len(match)-1]=match[len(match)-1]+"."
+                if match[0] not in fancyPeopleFnames:
+                    continue
+                if match[2] not in fancyPeopleLnames:
+                    continue
                 name=" ".join(match).strip()
                 namesFound.append(name)
                 print(name)
@@ -109,13 +113,27 @@ peopleNames=[x[:-1] for x in peopleNames]
 # We need to turn this into a form which can be efficiently searched.
 # We'll tokenize the names, and create a list of names as the values of a dictionary based on the first token.
 # The names themselves will be lists of the remaining tokens
-print("Creating names dictionary")
-peopleNamesDict={}
+print("Creating names sets")
+fancyPeopleNamesDict={}
+fancyPeopleFnames=set()
+fancyPeopleLnames=set()
 for name in peopleNames:
-    name=name.split()
-    if name[0] not in peopleNamesDict.keys():
-        peopleNamesDict[name[0]]=[]
-    peopleNamesDict[name[0]].append(name[1:])
+    parts=name.split()
+    if parts[0] not in fancyPeopleNamesDict.keys():
+        fancyPeopleNamesDict[parts[0]]=[]
+    fancyPeopleNamesDict[parts[0]].append(parts[1:])
+    partsL=[p.lower() for p in parts]
+    if len(partsL) < 2:
+        continue
+    fnameIndex=0
+    if partsL[fnameIndex] == "dr":
+        fnameIndex=1
+    lnameIndex=len(partsL)-1
+    if partsL[lnameIndex].lower() in ["ii", "iii", "iv", "phd", "md", "jr", "sr", "m d"]:
+        lnameIndex-=1
+    fancyPeopleFnames.add(parts[fnameIndex])
+    fancyPeopleLnames.add(parts[lnameIndex])    # Note that this messes up on last names like "de Camp"
+
 
 print("Walking Fanac.org directory tree")
 fanacRootPath="O:\\Bulk storage\\fanac.org backups\\fanac.org\\public"
@@ -135,7 +153,7 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     for fname in fileList:
         #if fname != "and remove this.txt":
             #continue
-        rslt=processFile(dirName, relpath, fname, peopleNamesDict)
+        rslt=processFile(dirName, relpath, fname, fancyPeopleNamesDict, fancyPeopleFnames, fancyPeopleLnames)
         if rslt is not None:
             namePathPairs.extend(rslt)
 
