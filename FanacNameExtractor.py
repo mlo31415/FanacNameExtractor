@@ -74,15 +74,22 @@ def processText(input: str, peopleNamesDict: dict):
     # All done. Reassemble the string for we can use another method on what's left.
     contents=" ".join(input)
 
-    # We'll start by looking for strings of the form <uc character><span(alpha)><whitespace><uc character><whitespace><uc character><span(alpha)>
+    # We'll start by looking for strings of the
+    # form <uc character><span(alpha)><whitespace><uc character><whitespace><uc character><span(alpha)>
     # (If we're going to do any further processing, we should use sub() to drop the names we have found from the input before the nest stop or we'll get dups.)
-    pattern=re.compile("([A-Z][a-z]*\s+[A-Z]\s+[A-Z][a-z]{3-99})")      # The {3-99} bit is because some files are actually binary and this filters out a lot of 1- and 2-character noise.
-    matches=re.findall(pattern, contents)
-    if matches is not None and len(matches) > 0:
-        for match in matches:
-            # Some names will include newlines and the like.  Turn all spans of whitespace into a single space
-            match=re.sub("\s+", " ", match)
-            namesFound.append(match)
+
+    matches=re.findall("([A-Z][A-Za-z]{1,16})\s+([A-Z])\s+([A-Z][A-Za-z]{2,16})", contents) # The {3,16} bit is because some files are actually binary and this filters out a lot of 1- and 2-character noise.
+    if matches is not None:
+        if len(matches) > 0:
+            for match in matches:
+                match=list(match)
+                if len(match[1]) == 1:
+                    match[1]=match[1]+"."
+                if len(match[len(match)-1]) == 2:
+                    match[len(match)-1]=match[len(match)-1]+"."
+                name=" ".join(match).strip()
+                namesFound.append(name)
+                print(name)
 
     # Remove duplicates
     return list(set(namesFound))
@@ -126,8 +133,8 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     print('Processing directory: %s' % dirName)
 
     for fname in fileList:
-#        if fname != "LegalRules-3.html":
-#            continue
+        #if fname != "and remove this.txt":
+            #continue
         rslt=processFile(dirName, relpath, fname, peopleNamesDict)
         if rslt is not None:
             namePathPairs.extend(rslt)
