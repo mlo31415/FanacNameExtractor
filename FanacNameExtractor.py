@@ -39,10 +39,12 @@ def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancy
     for ig in ignore:
         input=input.replace(ig, "")
     input=re.sub(r"</?[a-zA-Z]{1,2}[ >]", " ", input)  # Get rid of some of the the pesky bits of HTML which can look like parts of names
-    pattern=r"(Scan by|Scans by|scans by|Photo by|Scanning by|For more|provided by|entered by|Updated)\s+[a-zA-Z]{2,15}\s+[a-zA-Z]{2,15}"
+    input=re.sub(r"&nbsp;", " ", input)
+    input=re.sub(r'(?i: alt=".*?")', " ", input)
+    pattern=r"(?i: xxxxx|scan by|scans by|scanning by|scanning of|photo by|thenks to|for more|provided by|entered by|updated by|updated|collection of)\s+[a-zA-Z]{2,15}\s+[a-zA-Z]{2,15}"    # W/o middle initial
     input=re.sub(pattern, " ", input)
-    #pattern=r"(Scan by|Scans by|scans by|Photo by|Scanning by|For more|Updated)\s+[a-zA-Z]{2,15}\s+[a-zA-Z]{2,15}"
-    #input=re.sub(pattern, " ", input)
+    pattern=r"(?i: xxxxx|scan by|scans by|scanning by|scanning of|photo by|thanks to|for more|provided by|entered by|updated by|updated|collection of)\s+[a-zA-Z]{2,15}\s+[A-Z]?.?[a-zA-Z]{2,15}"       # W/middle initial
+    input=re.sub(pattern, " ", input)
 
     input=re.split(r"[^a-zA-Z]", input)     # Split on spans of non-alphabetic text
     input=[c for c in input if c != ""]     # The previous step produces a lot of enpty list element -- get rid of them
@@ -93,7 +95,7 @@ def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancy
                     continue
                 name=" ".join(match).strip()
                 namesFound.append(name)
-                print(name)
+                #print(name)
 
     # Remove duplicates
     return list(set(namesFound))
