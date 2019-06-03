@@ -39,8 +39,8 @@ def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancy
     for ig in ignore:
         input=input.replace(ig, "")
     input=re.sub(r"</?[a-zA-Z]{1,2}[ >]", " ", input)  # Get rid of some of the the pesky bits of HTML which can look like parts of names
-    input=re.sub(r"&nbsp;", " ", input)
-    input=re.sub(r'(?i: alt=".*?")', " ", input)
+    input=re.sub(r"&nbsp;", " ", input)     # It turns out that sometimes non-breaking spaces are in the midst of names.
+    input=re.sub(r'(?i: alt=".*?")', " ", input)        # The '(?i: ' makes the group's search case insensitive
     pattern=r"(?i: xxxxx|scan by|scans by|scanning by|scanning of|photo by|thenks to|for more|provided by|entered by|updated by|updated|collection of)\s+[a-zA-Z]{2,15}\s+[a-zA-Z]{2,15}"    # W/o middle initial
     input=re.sub(pattern, " ", input)
     pattern=r"(?i: xxxxx|scan by|scans by|scanning by|scanning of|photo by|thanks to|for more|provided by|entered by|updated by|updated|collection of)\s+[a-zA-Z]{2,15}\s+[A-Z]?.?[a-zA-Z]{2,15}"       # W/middle initial
