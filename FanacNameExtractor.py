@@ -31,7 +31,7 @@ def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict, fan
 #..................................................................
 # Take a string and return a list of all the unique recognized names in it.
 def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancyPeopleLnames: set):
-    namesFound=[]
+    namesFound=set()
 
     # We tokenize the input string breaking on whitespace.
     # Then we search it looking for matches to peopleNamesDict.  We add the match to namesFound and remove it from the string.
@@ -47,7 +47,7 @@ def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancy
     input=re.sub(pattern, " ", input)
 
     input=re.split(r"[^a-zA-Z]", input)     # Split on spans of non-alphabetic text
-    input=[c for c in input if c != ""]     # The previous step produces a lot of enpty list element -- get rid of them
+    input=[c for c in input if c != ""]     # The previous step produces a lot of empty list element -- get rid of them
     i=0
     while i<len(input):
         try:
@@ -60,11 +60,11 @@ def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancy
         for peopleName in peopleNamesList:
             ln=len(peopleName)
             if ln == 0:     # It's a one-token name
-                namesFound.append(input[i])
+                namesFound.add(input[i])
                 input[i]=""
                 break
             elif input[i+1 : i+1+ln] == peopleName:     # A hit!
-                namesFound.append(" ".join(input[i:i+ln+1]))
+                namesFound.add(" ".join(input[i:i+ln+1]))
                 for j in range(ln+1):
                     input[i+j]=""
                 i+=ln
@@ -78,7 +78,7 @@ def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancy
 
     # We'll start by looking for strings of the
     # form <uc character><span(alpha)><whitespace><uc character><whitespace><uc character><span(alpha)>
-    # (If we're going to do any further processing, we should use sub() to drop the names we have found from the input before the nest stop or we'll get dups.)
+    # (If we're going to do any further processing, we should use sub() to drop the names we have found from the input before the next step or we'll get dups.)
 
     matches=re.findall("([A-Z][A-Za-z]{1,16})\s+([A-Z])\s+([A-Z][A-Za-z]{2,16})", contents) # The {3,16} bit is because some files are actually binary and this filters out a lot of 1- and 2-character noise.
     if matches is not None:
@@ -94,11 +94,10 @@ def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancy
                 if match[2] not in fancyPeopleLnames:
                     continue
                 name=" ".join(match).strip()
-                namesFound.append(name)
+                namesFound.add(name)
                 #print(name)
 
-    # Remove duplicates
-    return list(set(namesFound))
+    return list(namesFound)
 
 
 #***************************************************************************************
