@@ -19,7 +19,7 @@ def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict, fan
     if ext in textTypes:
         with open(fullpath, "rb") as f:  # Reading in binary and doing the funny decode is to handle special characters embedded in some sources.
             source=f.read().decode("cp437")
-        rslt=processText(source, peopleNamesDict, fancyPeopleFnames, fancyPeopleLnames)
+        rslt=extractNamesFromText(source, peopleNamesDict, fancyPeopleFnames, fancyPeopleLnames)
         if rslt is None:
             return None
         return [(r, relpath) for r in rslt]
@@ -30,7 +30,7 @@ def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict, fan
 
 #..................................................................
 # Take a string and return a list of all the unique recognized names in it.
-def processText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancyPeopleLnames: set):
+def extractNamesFromText(input: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancyPeopleLnames: set):
     namesFound=set()
 
     # We tokenize the input string breaking on whitespace.
