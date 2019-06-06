@@ -5,13 +5,13 @@ import re
 
 # Take a file's pathname and, if it's a format we can handle, create a list of names found in it.
 # We return a list of tuples (name, filepath)
-def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancyPeopleLnames: set):
+def processFile(dirRelPath: str, pname: str, fname: str, peopleNamesDict: dict, fancyPeopleFnames: set, fancyPeopleLnames: set, information: dict):
 
     # Skip the existing names index files!
     if re.match("^names-[a-zA-Z]{1,2}\.html$", fname):
         return None
 
-    fullpath=os.path.join(dirName, fname)
+    fullpath=os.path.join(dirRelPath, fname)
     relpath=os.path.join(pname, fname)
 
     textTypes=[".txt", ".html"]
@@ -19,6 +19,9 @@ def processFile(dirname: str, pname: str, fname: str, peopleNamesDict: dict, fan
     if ext in textTypes:
         with open(fullpath, "rb") as f:  # Reading in binary and doing the funny decode is to handle special characters embedded in some sources.
             source=f.read().decode("cp437")
+        info=scanTextForInformation(source, dirRelPath, fname)
+        if info is not None:
+            information[relpath]=info
         rslt=extractNamesFromText(source, peopleNamesDict, fancyPeopleFnames, fancyPeopleLnames)
         if rslt is None:
             return None
@@ -101,6 +104,29 @@ def extractNamesFromText(input: str, peopleNamesDict: dict, fancyPeopleFnames: s
 
 
 #***************************************************************************************
+# Scan text for information useful for deciding what a given page references pertains to
+def scanTextForInformation(source: str, dirRelPath: str, fname: str):
+    fanzineName=None
+    # If this is a fanzine, is it an index page?
+    if dirRelPath.find("\\public\\fanzines\\") > -1 and fname == "index.html":
+        # The page usually gives the fanzine name at the top, usually as the first line of an H2 block.
+        match=re.search(r"(?i)<h2>(.*?)</h2>", source)
+        if match is not None and len(match.groups()) == 1:
+            s=match.groups()[0]
+            if s.find("<br>") > -1:
+                s=s.split("<br>")
+            else:
+                s=s.split("<BR>")
+            fanzineName=s[0]
+
+        # Now look for the table which will give an issue name and a link to the first page
+
+    return (fanzineName)
+
+
+
+
+#***************************************************************************************
 #***************************************************************************************
 # Main
 
@@ -118,6 +144,7 @@ print("Creating names sets")
 fancyPeopleNamesDict={}
 fancyPeopleFnames=set()
 fancyPeopleLnames=set()
+information={}
 for name in peopleNames:
     parts=name.split()
     if parts[0] not in fancyPeopleNamesDict.keys():
@@ -154,7 +181,7 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     for fname in fileList:
         #if fname != "and remove this.txt":
             #continue
-        rslt=processFile(dirName, relpath, fname, fancyPeopleNamesDict, fancyPeopleFnames, fancyPeopleLnames)
+        rslt=processFile(dirName, relpath, fname, fancyPeopleNamesDict, fancyPeopleFnames, fancyPeopleLnames, information)
         if rslt is not None:
             namePathPairs.extend(rslt)
 
@@ -163,4 +190,7 @@ with open("Fanac name path pairs.txt", "w+") as f:
     for name, path in namePathPairs:
         f.write(name+" | "+path+"\n")
 
+with open("Fanac information.txt", "w+") as f:
+    for path, data in information.items():
+        f.write(path+" | " + data+"\n")
 i=0
