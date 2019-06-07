@@ -192,5 +192,6 @@ with open("Fanac name path pairs.txt", "w+") as f:
 
 with open("Fanac information.txt", "w+") as f:
     for path, data in information.items():
-        f.write(path+" | " + data+"\n")
+        path, file=os.path.split(path)
+        f.write(path+" | " + file + " | " + data+"\n")
 i=0
