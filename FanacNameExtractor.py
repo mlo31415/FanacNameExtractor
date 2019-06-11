@@ -163,10 +163,38 @@ for name in peopleNames:
     fancyPeopleLnames.add(parts[lnameIndex])    # Note that this messes up on last names like "de Camp"
 
 
+#.............
+# Read the Fanac.org directory info table
+print("Reading Fanac directory info file")
+fancyNamesPath=r"Directory info.txt"
+with open(fancyNamesPath, "r") as f:
+    directoryInfoText=f.readlines()
+directoryInfoText=[d[:-1] for d in directoryInfoText if len(d) > 0 and d[0] != "#"]  # Ignore comment lines and trailing "\n"
+directoryInfo={}
+for dir in directoryInfoText:
+    # A line can be of these forms:
+    # path
+    # path | keyword
+    # path | keyword {text}
+    # and any of them could have a trailing comment starting ##
+    if dir.find("##") > -1:
+        dir=dir.split("##")[0].strip()
+    match=re.match("^(.+)\|\s*([a-zA-Z]+)\s*{(.+)}\s*$", dir)
+    if match is not None and len(match.groups()) == 3:
+        directoryInfo[match.groups()[0].strip()]=(match.groups()[1], match.groups()[2])
+        continue
+    match=re.match("^(.+)\|\s*([a-zA-Z]+)\s*$", dir)
+    if match is not None and len(match.groups()) == 2:
+        directoryInfo[match.groups()[0].strip()]=(match.groups()[1], None)
+        continue
+    directoryInfo[dir]=(None, None)
+
+
 print("Walking Fanac.org directory tree")
-fanacRootPath="O:\\Bulk storage\\fanac.org backups\\fanac.org\\public"
+#fanacRootPath="O:\\Bulk storage\\fanac.org backups\\fanac.org\\public"
+fanacRootPath="H:\\fanac.org\\public"
 namePathPairs=[]
-skippers=["_private", "stats", "ZipDisks", "Sasquan", "Aussiecon4", "Denvention3", "Intersection", "backup2", "Anticipation", "conjose", "NewStuff"]
+skippers=["_private", "stats", "ZipDisks", "Sasquan", "Aussiecon4", "Denvention3", "Intersection", "backup2", "Anticipation", "conjose", "NewStuff", "cgi-bin", "PHP-Testing"]
 
 # Recursively walk the directory tree under fanacRootPath
 for dirName, subdirList, fileList in os.walk(fanacRootPath):
