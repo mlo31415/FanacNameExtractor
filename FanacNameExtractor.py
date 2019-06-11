@@ -194,7 +194,7 @@ print("Walking Fanac.org directory tree")
 #fanacRootPath="O:\\Bulk storage\\fanac.org backups\\fanac.org\\public"
 fanacRootPath="H:\\fanac.org\\public"
 namePathPairs=[]
-skippers=["_private", "stats", "ZipDisks", "Sasquan", "Aussiecon4", "Denvention3", "Intersection", "backup2", "Anticipation", "conjose", "NewStuff", "cgi-bin", "PHP-Testing"]
+skippers=["_private", "stats", "ZipDisks", "backup2", "NewStuff", "cgi-bin", "PHP-Testing"]
 
 # Recursively walk the directory tree under fanacRootPath
 for dirName, subdirList, fileList in os.walk(fanacRootPath):
@@ -204,6 +204,10 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     if len(pathcomponents) > 1 and pathcomponents[1] in skippers:
         print("Skipping directory: "+relpath)
         continue
+    if relpath in directoryInfo.keys():
+        if directoryInfo[relpath][0] == "Ignore":
+            print("Ignoring directory: "+relpath)
+            continue
     print('Processing directory: %s' % dirName)
 
     for fname in fileList:
