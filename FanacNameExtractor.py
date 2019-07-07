@@ -210,13 +210,16 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
             continue
     print('Processing directory: %s' % dirName)
 
-    if relpath != "":   # Ignore files in the root
-        for fname in fileList:
-            #if fname != "and remove this.txt":
-                #continue
-            rslt=processFile(dirName, relpath, fname, fancyPeopleNamesDict, fancyPeopleFnames, fancyPeopleLnames, information)
-            if rslt is not None:
-                namePathPairs.extend(rslt)
+    if relpath == "":   # Ignore files in the root
+        continue
+
+    # Walk the files in this directory
+    for fname in fileList:
+        #if fname != "and remove this.txt":
+            #continue
+        rslt=processFile(dirName, relpath, fname, fancyPeopleNamesDict, fancyPeopleFnames, fancyPeopleLnames, information)
+        if rslt is not None:
+            namePathPairs.extend(rslt)
 
 # And write the results
 with open("Fanac name path triplets.txt", "w+") as f:
