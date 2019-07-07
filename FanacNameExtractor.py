@@ -25,7 +25,7 @@ def processFile(dirRelPath: str, pname: str, fname: str, peopleNamesDict: dict, 
         rslt=extractNamesFromText(source, peopleNamesDict, fancyPeopleFnames, fancyPeopleLnames)
         if rslt is None:
             return None
-        return [(r, relpath) for r in rslt]
+        return [(r, relpath, pname) for r in rslt]
     elif ext == ".pdf":
         return None    # Can't handle this yet
     return None
@@ -191,8 +191,8 @@ for dir in directoryInfoText:
 
 
 print("Walking Fanac.org directory tree")
-#fanacRootPath="O:\\Bulk storage\\fanac.org backups\\fanac.org\\public"
-fanacRootPath="H:\\fanac.org\\public"
+fanacRootPath=r"H:\fanac.org\public" #Q:\Bulk storage\fanac.org backups\fanac.org\public
+#fanacRootPath="Q:\\fanac.org\\public"
 namePathPairs=[]
 skippers=["_private", "stats", "ZipDisks", "backup2", "NewStuff", "cgi-bin", "PHP-Testing"]
 
@@ -210,19 +210,26 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
             continue
     print('Processing directory: %s' % dirName)
 
-    for fname in fileList:
-        #if fname != "and remove this.txt":
-            #continue
-        rslt=processFile(dirName, relpath, fname, fancyPeopleNamesDict, fancyPeopleFnames, fancyPeopleLnames, information)
-        if rslt is not None:
-            namePathPairs.extend(rslt)
+    if relpath != "":   # Ignore files in the root
+        for fname in fileList:
+            #if fname != "and remove this.txt":
+                #continue
+            rslt=processFile(dirName, relpath, fname, fancyPeopleNamesDict, fancyPeopleFnames, fancyPeopleLnames, information)
+            if rslt is not None:
+                namePathPairs.extend(rslt)
 
 # And write the results
-with open("Fanac name path pairs.txt", "w+") as f:
-    for name, path in namePathPairs:
-        f.write(name+" | "+path+"\n")
+with open("Fanac name path triplets.txt", "w+") as f:
+    f.write("# <person's name> | <file name> | <path relative to public>\n\n")
+    for name, relname, directory in namePathPairs:
+        path, file=os.path.split(relname)
+        if len(directory) > 0:
+             if path != directory:
+                 print("path='"+path+"'  and directory='"+directory+"'")
+        f.write(name+" | "+file+" | " + directory + "\n")
 
 with open("Fanac information.txt", "w+") as f:
+    f.write("# path | landing page | display name\n\n")
     for path, data in information.items():
         path, file=os.path.split(path)
         f.write(path+" | " + file + " | " + data+"\n")
