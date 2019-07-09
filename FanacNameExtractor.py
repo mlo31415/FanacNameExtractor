@@ -226,10 +226,10 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     # Get the pathname starting from the public directory
     relpath=dirName.replace(fanacRootPath, "")
     pathcomponents=(relpath).split(os.path.sep)
+    if len(pathcomponents) > 1 and pathcomponents[1] in tempSkippers:
+        continue
     if len(pathcomponents) > 1 and pathcomponents[1] in skippers:
         print("Skipping directory: "+relpath)
-        continue
-    if len(pathcomponents) > 1 and pathcomponents[1] in tempSkippers:
         continue
     if relpath in directoryInfo.keys():
         if directoryInfo[relpath][0] == "Ignore":
