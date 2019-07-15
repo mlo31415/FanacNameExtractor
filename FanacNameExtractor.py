@@ -2,6 +2,7 @@ import os
 import os.path
 import re
 import Globals
+import Helpers
 import ExtractNamesFromText
 
 # Take a file's pathname and, if it's a format we can handle, create a list of names found in it.
@@ -14,7 +15,7 @@ def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
         return None
 
     fullpath=os.path.join(dirRelPath, fname)
-    relpath=os.path.join(pname, fname)
+    relpathname=os.path.join(pname, fname)
 
     # We handle different file type differently.
     ext=os.path.splitext(fullpath)[1].lower()
@@ -23,8 +24,8 @@ def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
             source=f.read().decode("cp437")
         info=scanTextForInformation(source, dirRelPath, fname)
         if info is not None:
-            information[relpath]=info
-        listOfNamesFound=ExtractNamesFromText.extractNamesFromText(source)
+            information[relpathname]=info
+        listOfNamesFound=ExtractNamesFromText.extractNamesFromText(source, relpathname)
         if listOfNamesFound is None or len(listOfNamesFound) == 0:
             return None
 
@@ -48,7 +49,7 @@ def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
                 pageno=m.groups()[2]
                 print(m.groups()[0]+"  #"+m.groups()[1]+"  page "+m.groups()[2])
 
-        return [(name, relpath, pname, prefix, issueno, pageno) for name in listOfNamesFound]
+        return [(name, relpathname, pname, prefix, issueno, pageno) for name in listOfNamesFound]
 
     elif ext == ".pdf":
         return None    # Can't handle this yet
@@ -120,10 +121,12 @@ for name in peopleNames:
 
 
 # Remove a few particular problem names.
-# We have separate lists because some common words may sometimes be inappropriate only as fanme or only as lname
+# We have separate lists because some common words which can show up as a name in Fancy may sometimes be inappropriate for use in free text scanning
 generalSkiplist={"Fan", "Vol", "Who", "Page", "The", "Mr", "Mrs", "Ms", "Miss", "Dr", "Con", "Hugo", "They", "That", "What", "If", "Science", "Fiction", "MIT",
-                 "Research", "Sir", "Updated", "Abbey", "Editor", "Updated", "Toastmaster", "Award"}
+                 "Research", "Sir", "Abbey", "Editor", "Updated", "Toastmaster", "Award", "Fanzine", "Month", "Year", "August", "May", "November", "Cover"}
+
 Globals.gFancyPeopleFnames=Globals.gFancyPeopleFnames-generalSkiplist
+Globals.gFancyPeopleFnames=Globals.gFancyPeopleFnames.union(set())      # First names that need to be added
 Globals.gFancyPeopleLnames=Globals.gFancyPeopleLnames-generalSkiplist
 
 # .............
@@ -136,7 +139,8 @@ weirdcasestext=[d[:-1] for d in weirdcasestext if len(d) > 0 and d[0] != "#"]  #
 for w in weirdcasestext:
     w=[x.strip() for x in w.split("|")]     # Split the line on the "|" and strip excess spaces
     if len(w) == 2:
-        Globals.gWeirdCases[w[0]]=w[1]
+        # Because directory separates then to get a bit confused, we'll control one where the separator is a single forward slash
+        Globals.gWeirdCases[Helpers.PathNorm(w[0])]=w[1]
 
 
 #.............

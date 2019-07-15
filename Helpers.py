@@ -15,3 +15,9 @@ def IsAName(s: str):
         return True
 
     return False
+
+
+#*******************************************************
+# Make sure that the various single and double backslashes can be compared
+def PathNorm(s: str):
+    return s.replace(r"\\", "/").replace("\\", "/")
