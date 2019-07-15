@@ -6,7 +6,7 @@ import re
 # Take a file's pathname and, if it's a format we can handle, create a list of names found in it.
 # We return a list of tuples (name, filepath)
 # Otherwise, we return None
-def processFile(dirRelPath: str, pname: str, fname: str, fancyPeopleFnames: set, fancyPeopleLnames: set, information: dict):
+def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
 
     # If we encounter them, skip the existing names index files!
     if re.match("^names-[a-zA-Z]{1,2}\.html$", fname):
@@ -23,7 +23,7 @@ def processFile(dirRelPath: str, pname: str, fname: str, fancyPeopleFnames: set,
         info=scanTextForInformation(source, dirRelPath, fname)
         if info is not None:
             information[relpath]=info
-        listOfNamesFound=extractNamesFromText(source, fancyPeopleFnames, fancyPeopleLnames)
+        listOfNamesFound=extractNamesFromText(source)
         if listOfNamesFound is None or len(listOfNamesFound) == 0:
             return None
 
@@ -57,7 +57,9 @@ def processFile(dirRelPath: str, pname: str, fname: str, fancyPeopleFnames: set,
 
 #..................................................................
 # Take a string and return a list of all the unique recognized names in it.
-def extractNamesFromText(input: str, fancyPeopleFnames: set, fancyPeopleLnames: set):
+def extractNamesFromText(input: str):
+    global gFancyPeopleLnames
+    global gFancyPeopleFnames
     namesFound=set()
 
     # We tokenize the input string breaking on whitespace.
@@ -111,9 +113,9 @@ def extractNamesFromText(input: str, fancyPeopleFnames: set, fancyPeopleLnames: 
                     match[1]=match[1]+"."
 #                if len(match[-1:][0]) == 2:     # What does this do???
 #                    match[-1:][0]=match[-1:][0]+"."
-                if match[0] not in fancyPeopleFnames:
+                if match[0] not in gFancyPeopleFnames:
                     continue
-                if match[2] not in fancyPeopleLnames:
+                if match[2] not in gFancyPeopleLnames:
                     continue
                 name=" ".join(match).strip()
                 namesFound.add(name)
@@ -124,7 +126,7 @@ def extractNamesFromText(input: str, fancyPeopleFnames: set, fancyPeopleLnames: 
         if matches is not None:  # matches is a list of tuples, each of which is a single match found in the contents
             if len(matches) > 0:
                 for match in matches:  # Look at a single match
-                    if match[0] not in fancyPeopleFnames and match[1] not in fancyPeopleLnames:
+                    if match[0] not in gFancyPeopleFnames and match[1] not in gFancyPeopleLnames:
                         continue
                     name=" ".join(match).strip()
                     namesFound.add(name)
@@ -185,8 +187,12 @@ global gFancyPeopleNamesDict2
 gFancyPeopleNamesDict2={}    # Names with two or more tokens from Fancy
 global gFancyPeopleNamesDict1
 gFancyPeopleNamesDict1={}    # Single token names from Fancy
-fancyPeopleFnames=set()
-fancyPeopleLnames=set()
+
+global gFancyPeopleFnames
+gFancyPeopleFnames=set()
+global gFancyPeopleLnames
+gFancyPeopleLnames=set()
+
 information={}
 for name in peopleNames:
     parts=name.split()
@@ -208,15 +214,16 @@ for name in peopleNames:
     lnameIndex=len(partsL)-1
     if partsL[lnameIndex].lower() in ["ii", "iii", "iv", "phd", "md", "jr", "sr", "m d"]:
         lnameIndex-=1
-    fancyPeopleFnames.add(parts[fnameIndex])
-    fancyPeopleLnames.add(parts[lnameIndex])    # Note that this messes up on last names like "de Camp"
+    gFancyPeopleFnames.add(parts[fnameIndex])
+    gFancyPeopleLnames.add(parts[lnameIndex])    # Note that this messes up on last names like "de Camp"
 
 
 # Remove a few particular problem names.
 # We have separate lists because some common words may sometimes be inappropriate only as fanme or only as lname
-generalSkiplist={"Fan", "Vol", "Who", "Page", "The", "Mr", "Dr", "Con", "Hugo", "They", "That", "What", "If", "Science", "Fiction", "MIT", "Research", "Sir", "Updated"}
-fancyPeopleFnames=fancyPeopleFnames-generalSkiplist
-fancyPeopleLnames=fancyPeopleLnames-generalSkiplist
+generalSkiplist={"Fan", "Vol", "Who", "Page", "The", "Mr", "Mrs", "Ms", "Miss", "Dr", "Con", "Hugo", "They", "That", "What", "If", "Science", "Fiction", "MIT",
+                 "Research", "Sir", "Updated", "Abbey", "Editor"}
+gFancyPeopleFnames=gFancyPeopleFnames-generalSkiplist
+gFancyPeopleLnames=gFancyPeopleLnames-generalSkiplist
 
 #.............
 # Read the Fanac.org directory info table
@@ -275,7 +282,7 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
     for fname in fileList:
         #if fname != "and remove this.txt":
             #continue
-        rslt=processFile(dirName, relpath, fname, fancyPeopleFnames, fancyPeopleLnames, information)
+        rslt=processFile(dirName, relpath, fname, information)
         if rslt is not None:
             references.extend(rslt)
 
