@@ -17,27 +17,58 @@ def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
     fullpath=os.path.join(dirRelPath, fname)
     relpathname=os.path.join(pname, fname)
 
+    # First get the page source
     # We handle different file type differently.
     ext=os.path.splitext(fullpath)[1].lower()
     if ext in [".txt", ".html"]:    # The text file types
         with open(fullpath, "rb") as f:  # Reading in binary and doing the funny decode is to handle special characters embedded in some sources.
             source=f.read().decode("cp437")
-        info=scanTextForInformation(source, dirRelPath, fname)
-        if info is not None:
-            information[relpathname]=info
-        listOfNamesFound=ExtractNamesFromText.extractNamesFromText(source, relpathname)
-        if listOfNamesFound is None or len(listOfNamesFound) == 0:
-            return None
+    elif ext == ".pdf":
+        return None     # Can't handle this yet
+    else:
+        return None     # Can't handle that, either.
 
-        # We also need to figure out what kind of page this is.
+    # Now scan the text looking for names
+    info=scanTextForInformation(source, dirRelPath, fname)
+    if info is not None:
+        information[relpathname]=info
+    listOfNamesFound=ExtractNamesFromText.extractNamesFromText(source, relpathname)
+    if listOfNamesFound is None or len(listOfNamesFound) == 0:
+        return None
+
+    # OK, we have the names.  Now create a line in the output file for each name.
+    # The line needs to contain proper information about the page.
+    prefix=""
+    issueno=""
+    pageno=""
+
+    # We also need to figure out what kind of page this is.
+    # First, we handle MT Void's weird notation
+    if Helpers.PathNorm(pname) == "/fanzines/MT_Void":
+        # The filename is MT_Void-nnmm.html, where nn is the volume and nn is the issue.
+        pattern="^MT_Void-([0-9][0-9])([0-9][0-9]).html"
+        m=re.match(pattern, fname)
+        if m is not None:
+            prefix="MT Void"
+            issueno="V"+m.groups()[0]+"#"+m.groups()[1]
+            print("MT Void "+issueno)
+
+    elif Helpers.PathNorm(pname) == "/Fannish_Reference_Works/Fan_terms":
+        # The filename is Fan_terms-07.html where 07 is the page number
+        pattern="^Fan_terms-([0-9]+).html"
+        m=re.match(pattern, fname)
+        if m is not None:
+            prefix="Fan Terms"
+            pageno=m.groups()[0]
+            print("Fan terms "+pageno)
+
+    else:
         # Right now, we'll look for two types:
         #   A standard fanzine page html file
         #       This is a specific kind of HTML page which frames a jpg.
         #       We look for some HTML which is standard on these pages
         #   Everything else
-        prefix=""
-        issueno=""
-        pageno=""
+
         if source.find(r'<TABLE ALIGN="center" CLASS="navbar"><TR>') > -1 and \
                 source.find(r'<TD CLASS="navbar"><FORM ACTION="/map.html"><INPUT TYPE="submit" VALUE="Site Map"></FORM>') > -1:
             # OK, this is probably a standard fanzine page
@@ -49,10 +80,8 @@ def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
                 pageno=m.groups()[2]
                 print(m.groups()[0]+"  #"+m.groups()[1]+"  page "+m.groups()[2])
 
-        return [(name, relpathname, pname, prefix, issueno, pageno) for name in listOfNamesFound]
+    return [(name, relpathname, pname, prefix, issueno, pageno) for name in listOfNamesFound]
 
-    elif ext == ".pdf":
-        return None    # Can't handle this yet
 
     return None
 
@@ -123,7 +152,8 @@ for name in peopleNames:
 # Remove a few particular problem names.
 # We have separate lists because some common words which can show up as a name in Fancy may sometimes be inappropriate for use in free text scanning
 generalSkiplist={"Fan", "Vol", "Who", "Page", "The", "Mr", "Mrs", "Ms", "Miss", "Dr", "Con", "Hugo", "They", "That", "What", "If", "Science", "Fiction", "MIT",
-                 "Research", "Sir", "Abbey", "Editor", "Updated", "Toastmaster", "Award", "Fanzine", "Month", "Year", "August", "May", "November", "Cover"}
+                 "Research", "Sir", "Abbey", "Editor", "Updated", "Toastmaster", "Award", "Fanzine", "Month", "Year", "August", "May", "November", "Cover",
+                 "Sydney", "Art"}
 
 Globals.gFancyPeopleFnames=Globals.gFancyPeopleFnames-generalSkiplist
 Globals.gFancyPeopleFnames=Globals.gFancyPeopleFnames.union(set())      # First names that need to be added
