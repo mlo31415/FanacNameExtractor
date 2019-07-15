@@ -193,6 +193,9 @@ gFancyPeopleFnames=set()
 global gFancyPeopleLnames
 gFancyPeopleLnames=set()
 
+global gWeirdCases
+gWeirdCases={}      # Dictionary keyed by path+filename relative to public; Value is information on processing
+
 information={}
 for name in peopleNames:
     parts=name.split()
@@ -224,6 +227,19 @@ generalSkiplist={"Fan", "Vol", "Who", "Page", "The", "Mr", "Mrs", "Ms", "Miss", 
                  "Research", "Sir", "Updated", "Abbey", "Editor"}
 gFancyPeopleFnames=gFancyPeopleFnames-generalSkiplist
 gFancyPeopleLnames=gFancyPeopleLnames-generalSkiplist
+
+# .............
+# Read the Weird Cases info table
+print("Reading Weird Cases file")
+fancyNamesPath=r"Weird Cases.txt"
+with open(fancyNamesPath, "r") as f:
+    weirdcasestext=f.readlines()
+weirdcasestext=[d[:-1] for d in weirdcasestext if len(d) > 0 and d[0] != "#"]  # Ignore comment lines and trailing "\n"
+for w in weirdcasestext:
+    w=[x.strip() for x in w.split("|")]     # Split the line on the "|" and strip excess spaces
+    if len(w) == 2:
+        gWeirdCases[w[0]]=w[1]
+
 
 #.............
 # Read the Fanac.org directory info table
