@@ -1,7 +1,8 @@
 import os
 import os.path
 import re
-
+import Globals
+import ExtractNamesFromText
 
 # Take a file's pathname and, if it's a format we can handle, create a list of names found in it.
 # We return a list of tuples (name, filepath)
@@ -23,7 +24,7 @@ def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
         info=scanTextForInformation(source, dirRelPath, fname)
         if info is not None:
             information[relpath]=info
-        listOfNamesFound=extractNamesFromText(source)
+        listOfNamesFound=ExtractNamesFromText.extractNamesFromText(source)
         if listOfNamesFound is None or len(listOfNamesFound) == 0:
             return None
 
@@ -53,96 +54,6 @@ def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
         return None    # Can't handle this yet
 
     return None
-
-
-#..................................................................
-# Take a string and return a list of all the unique recognized names in it.
-def extractNamesFromText(input: str):
-    global gFancyPeopleLnames
-    global gFancyPeopleFnames
-    namesFound=set()
-
-    # We tokenize the input string breaking on whitespace.
-    # Then we search it looking for matches to gFancyPeopleNamesDict1 and gFancyPeopleNamesDict2.  We add the match to namesFound and remove it from the string.
-    ignore=["by F.A.N.A.C. Inc."]
-    for ig in ignore:
-        input=input.replace(ig, "")
-    input=re.sub(r"</?[a-zA-Z]{1,2}[ >]", " ", input)  # Get rid of some of the the pesky bits of HTML which can look like parts of names
-    input=re.sub(r"&nbsp;", " ", input)     # It turns out that sometimes non-breaking spaces are found in the midst of names.
-    input=re.sub(r'(?i: alt=".*?")', " ", input)        # The '(?i: ' makes the group's search case insensitive
-    pattern=r"(?i: xxxxx|scan by|scans by|scanning by|scanning of|photo by|thenks to|for more|provided by|entered by|updated by|updated|collection of)\s+[a-zA-Z]{2,15}\s+[a-zA-Z]{2,15}"    # W/o middle initial
-    input=re.sub(pattern, " ", input)
-    pattern=r"(?i: xxxxx|scan by|scans by|scanning by|scanning of|photo by|thanks to|for more|provided by|entered by|updated by|updated|collection of)\s+[a-zA-Z]{2,15}\s+[A-Z]?.?[a-zA-Z]{2,15}"       # W/middle initial
-    input=re.sub(pattern, " ", input)
-
-    input=re.split(r"[^a-zA-Z]", input)     # Split on spans of non-alphabetic text
-    input=[c for c in input if c != ""]     # The previous step produces a lot of empty list element -- get rid of them
-    i=0
-    while i<len(input):
-        if input[i] not in gFancyPeopleNamesDict2.keys():
-            i+=1  # No match.  Go to the next token and try again.
-            continue
-
-        peopleNamesList=gFancyPeopleNamesDict2[input[i]]
-
-        # We have a token match to the start of a name.  Run through the list of trailing tokens for each name to see if any of them also match
-        for peopleName in peopleNamesList:
-            ln=len(peopleName)
-            if input[i+1 : i+1+ln] == peopleName:     # A hit!
-                namesFound.add(" ".join(input[i:i+ln+1]))
-                for j in range(ln+1):
-                    input[i+j]=""
-                i+=ln
-                break
-            else:
-                pass    # No Match. Go on to the next name in the list
-        i+=1
-
-    # All done. Reassemble the string for we can use another method on what's left.
-    contents=" ".join(input)
-
-    # We'll start by looking for strings of the
-    # form <uc character><span(alpha)><whitespace><uc character><whitespace><uc character><span(alpha)>
-    # (If we're going to do any further processing, we should use sub() to drop the names we have found from the input before the next step or we'll get dups.)
-    matches=re.findall("([A-Z][A-Za-z]{1,16})\s+([A-Z]\.?)\s+([A-Z][A-Za-z]{2,16})", contents) # The {2,16} bit is because some files are actually binary and this filters out a lot of 1- and 2-character noise.
-    if matches is not None: # matches is a list of tuples, each of which is a single match found in the contents
-        if len(matches) > 0:
-            for match in matches:   # Look at a single match
-                match=list(match)   # Turn the tuple into a list so we can manipulate its contents
-                if len(match[1]) == 1:  # If the middle initial isn't followed by a ".", add the "."
-                    match[1]=match[1]+"."
-#                if len(match[-1:][0]) == 2:     # What does this do???
-#                    match[-1:][0]=match[-1:][0]+"."
-                if match[0] not in gFancyPeopleFnames:
-                    continue
-                if match[2] not in gFancyPeopleLnames:
-                    continue
-                name=" ".join(match).strip()
-                namesFound.add(name)
-                #print(name)
-
-    # Now let's look for cases where we have just Fname Lname, with either Fname or Lname being a name in the Fancy list of fnames and lnames.
-        matches=re.findall("([A-Z][a-z]{1,16})\s+([A-Z][a-z]{2,16})", contents)  # The {2,16} bit is because some files are actually binary and this filters out a lot of 1- and 2-character noise.
-        if matches is not None:  # matches is a list of tuples, each of which is a single match found in the contents
-            if len(matches) > 0:
-                for match in matches:  # Look at a single match
-                    if match[0] not in gFancyPeopleFnames and match[1] not in gFancyPeopleLnames:
-                        continue
-                    name=" ".join(match).strip()
-                    namesFound.add(name)
-                    print("match: "+name)
-
-    # Now look for any one-token names from Fancy
-    # (We have to do them last, or they might steal part of a two-token name.)
-    i=0
-    while i<len(input):
-        if input[i] in gFancyPeopleNamesDict1.keys():
-            # We have a token match to a single token name.
-            namesFound.add(input[i])
-            input[i]=""
-        i+=1
-
-    return list(namesFound)
 
 
 #***************************************************************************************
@@ -183,30 +94,17 @@ peopleNames=[x[:-1] for x in peopleNames]
 # We'll tokenize the names, and create a list of names as the values of a dictionary based on the first token.
 # The names themselves will be lists of the remaining tokens
 print("Creating names sets")
-global gFancyPeopleNamesDict2
-gFancyPeopleNamesDict2={}    # Names with two or more tokens from Fancy
-global gFancyPeopleNamesDict1
-gFancyPeopleNamesDict1={}    # Single token names from Fancy
-
-global gFancyPeopleFnames
-gFancyPeopleFnames=set()
-global gFancyPeopleLnames
-gFancyPeopleLnames=set()
-
-global gWeirdCases
-gWeirdCases={}      # Dictionary keyed by path+filename relative to public; Value is information on processing
-
 information={}
 for name in peopleNames:
     parts=name.split()
     if len(parts) > 1:
-        if parts[0] not in gFancyPeopleNamesDict2.keys():
-            gFancyPeopleNamesDict2[parts[0]]=[]
-        gFancyPeopleNamesDict2[parts[0]].append(parts[1:])
+        if parts[0] not in Globals.gFancyPeopleNamesDict2.keys():
+            Globals.gFancyPeopleNamesDict2[parts[0]]=[]
+        Globals.gFancyPeopleNamesDict2[parts[0]].append(parts[1:])
     else:
-        if parts[0] not in gFancyPeopleNamesDict1.keys():
-            gFancyPeopleNamesDict1[parts[0]]=[]
-        gFancyPeopleNamesDict1[parts[0]].append(parts[1:])
+        if parts[0] not in Globals.gFancyPeopleNamesDict1.keys():
+            Globals.gFancyPeopleNamesDict1[parts[0]]=[]
+        Globals.gFancyPeopleNamesDict1[parts[0]].append(parts[1:])
 
     partsL=[p.lower() for p in parts]
     if len(partsL) < 2:
@@ -217,16 +115,16 @@ for name in peopleNames:
     lnameIndex=len(partsL)-1
     if partsL[lnameIndex].lower() in ["ii", "iii", "iv", "phd", "md", "jr", "sr", "m d"]:
         lnameIndex-=1
-    gFancyPeopleFnames.add(parts[fnameIndex])
-    gFancyPeopleLnames.add(parts[lnameIndex])    # Note that this messes up on last names like "de Camp"
+    Globals.gFancyPeopleFnames.add(parts[fnameIndex])
+    Globals.gFancyPeopleLnames.add(parts[lnameIndex])    # Note that this messes up on last names like "de Camp"
 
 
 # Remove a few particular problem names.
 # We have separate lists because some common words may sometimes be inappropriate only as fanme or only as lname
 generalSkiplist={"Fan", "Vol", "Who", "Page", "The", "Mr", "Mrs", "Ms", "Miss", "Dr", "Con", "Hugo", "They", "That", "What", "If", "Science", "Fiction", "MIT",
-                 "Research", "Sir", "Updated", "Abbey", "Editor"}
-gFancyPeopleFnames=gFancyPeopleFnames-generalSkiplist
-gFancyPeopleLnames=gFancyPeopleLnames-generalSkiplist
+                 "Research", "Sir", "Updated", "Abbey", "Editor", "Updated", "Toastmaster", "Award"}
+Globals.gFancyPeopleFnames=Globals.gFancyPeopleFnames-generalSkiplist
+Globals.gFancyPeopleLnames=Globals.gFancyPeopleLnames-generalSkiplist
 
 # .............
 # Read the Weird Cases info table
@@ -238,7 +136,7 @@ weirdcasestext=[d[:-1] for d in weirdcasestext if len(d) > 0 and d[0] != "#"]  #
 for w in weirdcasestext:
     w=[x.strip() for x in w.split("|")]     # Split the line on the "|" and strip excess spaces
     if len(w) == 2:
-        gWeirdCases[w[0]]=w[1]
+        Globals.gWeirdCases[w[0]]=w[1]
 
 
 #.............
