@@ -43,8 +43,24 @@ def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
     pageno=""
 
     # We also need to figure out what kind of page this is.
-    # First, we handle MT Void's weird notation
-    if Helpers.PathNorm(pname) == "/fanzines/MT_Void":
+
+    # First, let's look at the many which are of the form <name><num>.html'
+    m=re.match("^([a-zA-Z])+([0-9]+).html$", fname)
+    if m is not None:
+        prefix=m.groups()[0]
+        issueno=m.groups()[1]
+        print(prefix+" #"+issueno)
+
+    elif Helpers.PathNorm(pname) == "/fanzines/Bullsheet":
+        pattern="^Bullsheet([12])-([0-9]+).html$"
+        m=re.match(pattern, fname)
+        if m is not None:
+            prefix="Bullsheet (series "+m.groups()[0]+")"
+            issueno=m.groups()[1]
+            print(prefix+" #"+issueno)
+
+    # MT Void's weird notation
+    elif Helpers.PathNorm(pname) == "/fanzines/MT_Void":
         # The filename is MT_Void-nnmm.html, where nn is the volume and nn is the issue.
         pattern="^MT_Void-([0-9][0-9])([0-9][0-9]).html"
         m=re.match(pattern, fname)
@@ -236,7 +252,7 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
 
 # And write the results
 with open("Fanac name references.txt", "w+") as f:
-    f.write("# <person's name> | <file name> | <path relative to public>\n\n")
+    f.write("# <person's name> | <file name> | <path relative to public> | <prefix> | <issue no> | <page no>\n\n")
     for name, relname, directory, prefix, issueno, pageno in references:
         path, file=os.path.split(relname)
         if len(directory) > 0:
