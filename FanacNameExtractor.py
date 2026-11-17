@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import Union, Tuple, Optional, List, Any, Dict
+
 import os
 import os.path
 import re
@@ -5,10 +8,19 @@ import Globals
 import Helpers
 import ExtractNamesFromText
 
+@dataclass
+class FileVals:
+    Name: str=""
+    Relpathname: str=""
+    Directory: str=""
+    Prefix: str=""
+    Issueno: str=""
+    Pageno: str=""
+
 # Take a file's pathname and, if it's a format we can handle, create a list of names found in it.
 # We return a list of tuples (name, filepath)
 # Otherwise, we return None
-def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
+def processFile(dirRelPath: str, pname: str, fname: str, information: dict) -> Optional[List[FileVals]]:
 
     # If we encounter them, skip the existing names index files!
     if re.match("^names-[a-zA-Z]{1,2}\.html$", fname):
@@ -96,10 +108,7 @@ def processFile(dirRelPath: str, pname: str, fname: str, information: dict):
                 pageno=m.groups()[2]
                 print(m.groups()[0]+"  #"+m.groups()[1]+"  page "+m.groups()[2])
 
-    return [(name, relpathname, pname, prefix, issueno, pageno) for name in listOfNamesFound]
-
-
-    return None
+    return [FileVals(name, relpathname, pname, prefix, issueno, pageno) for name in listOfNamesFound]
 
 
 #***************************************************************************************
@@ -132,9 +141,8 @@ def scanTextForInformation(source: str, dirRelPath: str, fname: str):
 # Read in the people names table from Fancyclopedia 3.  This will provide a rich set of names to look for in Fanac.org
 print("Reading Fancy names")
 fancyNamesPath=r"..\FancyNameExtractor\Peoples names.txt"
-with open(fancyNamesPath, "r") as f:
-    peopleNames=f.readlines()
-peopleNames=[x[:-1] for x in peopleNames]
+with open(fancyNamesPath, "rb") as f:
+    peopleNames=f.read().decode('utf-8').splitlines()
 
 # We need to turn this into a form which can be efficiently searched.
 # We'll tokenize the names, and create a list of names as the values of a dictionary based on the first token.
@@ -219,7 +227,7 @@ for dir in directoryInfoText:
 print("Walking Fanac.org directory tree")
 fanacRootPath=r"H:\fanac.org\public" #Q:\Bulk storage\fanac.org backups\fanac.org\public
 #fanacRootPath="Q:\\fanac.org\\public"
-references=[]
+references: List[FileVals]=[]
 skippers=["_private", "stats", "ZipDisks", "backup2", "NewStuff", "cgi-bin", "PHP-Testing"]
 tempSkippers=["conjose", "Denvention3"]
 
@@ -251,16 +259,16 @@ for dirName, subdirList, fileList in os.walk(fanacRootPath):
             references.extend(rslt)
 
 # And write the results
-with open("Fanac name references.txt", "w+") as f:
+with open("Fanac name references.txt", "w+", encoding="utf-8") as f:
     f.write("# <person's name> | <file name> | <path relative to public> | <prefix> | <issue no> | <page no>\n\n")
-    for name, relname, directory, prefix, issueno, pageno in references:
-        path, file=os.path.split(relname)
-        if len(directory) > 0:
-             if path != directory:
-                 print("path='"+path+"'  and directory='"+directory+"'")
-        f.write(name+" | "+file+" | " + directory +" | " + prefix+" | " + issueno+" | " + pageno+ "\n")
+    for ref in references:
+        path, file=os.path.split(ref.Relpathname)
+        if len(ref.Directory) > 0:
+             if path != ref.Directory:
+                 print("path='"+path+"'  and directory='"+ref.Directory+"'")
+        f.write(ref.Name+" | "+file+" | " + ref.Directory +" | " + ref.Prefix+" | " + ref.Issueno+" | " + ref.Pageno+ "\n")
 
-with open("Fanac information.txt", "w+") as f:
+with open("Fanac information.txt", "w+", encoding="utf-8") as f:
     f.write("# path | landing page | display name\n\n")
     for path, data in information.items():
         path, file=os.path.split(path)
